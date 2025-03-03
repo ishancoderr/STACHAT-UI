@@ -1,25 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
+import CryptoJS from 'crypto-js';
+import chatLogo from './images/logo-.webp';
+import newMsg from './images/msg.png';
 
 function App() {
-  const [messages, setMessages] = useState([]); // Stores chat history
-  const [input, setInput] = useState(''); // Stores user input
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const chatRef = useRef(null); // Reference for the chat container
 
-  // Function to send user query to the backend
-  const sendQuery = async () => {
-    if (!input.trim()) return; // Ignore empty queries
+  const questions = [
+    "Which products are associated with the instrument 'TROPOMI,' and what are their respective temporal and spatial extents?",
+    "How many products are produced by the organization 'DLR - German Remote Sensing Data Center (DFD),' and what are their names?",
+    "How many products use the sensor type 'Optical,' and what are their visualization URLs?",
+    "Which products have a temporal extent that includes the year 2022, and what are their download links?",
+    "Compare the spatial extents of the products 'Sentinel-2 L2A Maja' and 'Sentinel-2 L3A Monthly WASP Products.' What are the differences in their coverage areas?"
+  ];
 
-    // Add user message to chat history
-    setMessages((prev) => [...prev, { sender: 'user', text: input }]);
+  useEffect(() => {
+    // Automatically scroll to the bottom when messages update
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const sendQuery = async (question) => {
+    const query = question || input;
+    if (!query.trim()) return;
+
+    setMessages((prev) => [...prev, { sender: 'user', text: query }]);
+    setInput('');
+    setLoading(true);
 
     try {
-      // Send query to the FastAPI backend
-      const response = await fetch('http://localhost:5100/query', {
+      const body = JSON.stringify({ question: query });
+      const secret = process.env.REACT_APP_WEBHOOK_SECRET;
+      let headers = {
+        'Content-Type': 'application/json',
+      };
+
+      if (secret) {
+        const signature = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);
+        headers['X-Hub-Signature-256'] = `sha256=${signature}`;
+      }
+
+      const response = await fetch('http://localhost:5100/webhook', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ question: input }),
+        headers: headers,
+        body: body,
       });
 
       if (!response.ok) {
@@ -27,50 +56,51 @@ function App() {
       }
 
       const data = await response.json();
+      const formattedResponse = data.response
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>')
+        .replace(/\n/g, '<br/>');
 
-      // Add bot response to chat history
-      setMessages((prev) => [...prev, { sender: 'bot', text: data.response }]);
+      setMessages((prev) => [...prev, { sender: 'bot', text: formattedResponse, isHtml: true }]);
     } catch (error) {
       console.error('Error:', error);
-      setMessages((prev) => [
-        ...prev,
-        { sender: 'bot', text: 'Sorry, something went wrong. Please try again.' },
-      ]);
+      setMessages((prev) => [...prev, { sender: 'bot', text: 'Sorry, something went wrong. Please try again.' }]);
     }
 
-    // Clear input field
-    setInput('');
+    setLoading(false);
   };
 
   return (
     <div className="App">
       <div className="sidebar">
+        <div className="sidebar-header">
+          <img src={chatLogo} alt="Stachat Logo" className="chatLogo" />
+          <h1>StaChat</h1>
+        </div>
         <div className="upperSlide">
           <div className="upperSlideTop">
-            <button className="mitBtn">
-              <img src="" alt="" className="addBtn" />
+            <button className="mitBtn" onClick={() => setMessages([])}>
+              <img src={newMsg} alt="ChatGPT Logo" className="newMsg" />
               New Chat
             </button>
             <div className="upperSideBottom">
-              <button className="query">
-                <img src="" alt="" />
-                What is Programming?
-              </button>
-              <button className="query">
-                <img src="" alt="" />
-                What is Programming?
-              </button>
+              {questions.map((question, index) => (
+                <button key={index} className="query" onClick={() => sendQuery(question)}>
+                  {question}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </div>
       <div className="main">
-        <div className="chat-container">
+        <div className="chat-container" ref={chatRef}>
           {messages.map((msg, index) => (
             <div key={index} className={`message ${msg.sender}`}>
-              <div className="message-content">{msg.text}</div>
+              <div className="message-content" dangerouslySetInnerHTML={msg.isHtml ? { __html: msg.text } : { __html: msg.text.replace(/\n/g, '<br/>') }}></div>
             </div>
           ))}
+          {loading && <div className="loading">Loading...</div>}
         </div>
         <div className="input-container">
           <input
@@ -79,8 +109,11 @@ function App() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your question..."
             onKeyPress={(e) => e.key === 'Enter' && sendQuery()}
+            disabled={loading}
           />
-          <button onClick={sendQuery}>Send</button>
+          <button onClick={() => sendQuery()} disabled={loading}>
+            {loading ? 'Loading...' : 'Send'}
+          </button>
         </div>
       </div>
     </div>
