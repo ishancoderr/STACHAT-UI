@@ -8,7 +8,8 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const chatRef = useRef(null); // Reference for the chat container
+  const [selectedModel, setSelectedModel] = useState("gpt-3.5-turbo"); 
+  const chatRef = useRef(null); 
 
   const questions = [
     "Which products are associated with the instrument 'TROPOMI,' and what are their respective temporal and spatial extents?",
@@ -34,7 +35,7 @@ function App() {
     setLoading(true);
 
     try {
-      const body = JSON.stringify({ question: query });
+      const body = JSON.stringify({ question: query, model_name: selectedModel });
       const secret = process.env.REACT_APP_WEBHOOK_SECRET;
       let headers = {
         'Content-Type': 'application/json',
@@ -45,7 +46,7 @@ function App() {
         headers['X-Hub-Signature-256'] = `sha256=${signature}`;
       }
 
-      const response = await fetch('http://localhost:5100/webhook', {
+      const response = await fetch('http://localhost:8000/webhook', {
         method: 'POST',
         headers: headers,
         body: body,
@@ -83,6 +84,17 @@ function App() {
               <img src={newMsg} alt="ChatGPT Logo" className="newMsg" />
               New Chat
             </button>
+            <div className="model-selector">
+              <label htmlFor="model-select">Select Model:</label>
+              <select
+                id="model-select"
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+              >
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                <option value="gpt-4-turbo">GPT-4 Turbo</option> {/* if need to add more models add them here */}
+              </select>
+            </div>
             <div className="upperSideBottom">
               {questions.map((question, index) => (
                 <button key={index} className="query" onClick={() => sendQuery(question)}>
