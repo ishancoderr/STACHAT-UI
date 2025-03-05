@@ -24,7 +24,7 @@ Navigate to the project directory:
 
 REACT_APP_WEBHOOK_SECRET=your_secret_key_here
 
-Start the development server:
+**Start the development server:**
 npm start
 
 
