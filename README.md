@@ -5,35 +5,34 @@ This is a React-based frontend application for a chat interface. It integrates w
 ---
 
 ## **Prerequisites**
-
 Before running the application, ensure you have the following installed:
-
 - **Node.js** (v16 or higher)
 - **npm** (v8 or higher)
 
 ---
 
 ## **Installation**
-
 1. Clone the repository:
    ```bash
    git clone https://github.com/ishancoderr/STACHAT-UI.git
 Navigate to the project directory:
 
-bash
-Copy
-cd STACHAT-UI
-Install dependencies:
+# Running the Application
 
-bash
-Copy
-npm install
-Create a .env file in the root directory and add the following:
-
-plaintext
-Copy
-# Webhook secret key for HMAC SHA256 encryption
+**Webhook secret key for HMAC SHA256 encryption**
 REACT_APP_WEBHOOK_SECRET=your_secret_key_here
+
+Start the development server:
+npm start
+
+# Project Documentation
+
+## Getting Started
+
+Open your browser and navigate to:
+http://localhost:3000
+
+Copy
 
 ## Available Scripts
 
@@ -62,4 +61,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 - **OpenAI GPT Models**: Used for generating responses to user queries.
 - **Neo4j**: Used for storing and retrieving geospatial data.
-- **STAC Collections**: Provided the dataset for querying satellite and geospatial information.
+- **STAC Collections**: Provided the dataset for querying satellite and geospatial information. please write this beautifully in markdown file
